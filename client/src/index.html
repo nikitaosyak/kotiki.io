@@ -12,8 +12,55 @@
 
 <!--<script src="bundle.js"></script>-->
 <script>
-    console.log('started')
+    let currentSession = null
+    const errorHandler = err => console.error(err)
+    const client = new nakamajs.Client()
 
+    const sessionHandler = session => {
+        console.log('sessionHandler:')
+        currentSession = session
+        client.connect(session).then(session => {
+            localStorage.nakamaToken = session.token_
+            console.log('    valid until: ', new Date(session.expiresAt))
+        }).catch(errorHandler)
+    }
+
+    const restoreSession = () => {
+        console.log('restoreSession:')
+        let sessionString = localStorage.nakamaToken
+        if (sessionString === 'undefined' || sessionString === '') {
+            console.log('restoreSession: no saved session key in local storage')
+            return
+        }
+
+        const session = nakamajs.Session.restore(sessionString)
+        if (session.isexpired(Date.now())) {
+            console.log('    session expired')
+            return
+        }
+
+        console.log('    success')
+        sessionHandler(session)
+    }
+
+    const loginOrRegister = () => {
+        console.log('loginOrRegister:')
+        const msg = nakamajs.AuthenticateRequest.email('test@test.com', '12345678')
+        client.login(msg).then(sessionHandler).catch(err => {
+            if (err.code === 5) {
+                console.log(`    registering user`)
+                client.register(msg).then(sessionHandler).catch(errorHandler)
+            } else {
+                console.log(`    session error: ${err.code}`)
+                errorHandler(err)
+            }
+        })
+    }
+
+    restoreSession()
+    if (currentSession === null) {
+        loginOrRegister()
+    }
 
 
 </script>
