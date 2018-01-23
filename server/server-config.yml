@@ -1,0 +1,8 @@
+name: nakama-kotiki
+data_dir: "./data/"
+database:
+  address:
+    - "root@192.168.56.101:26257"
+  conn_max_lifetime_ms: 60000
+  max_open_conns: 0
+  max_idle_conns: 0
