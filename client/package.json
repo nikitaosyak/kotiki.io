@@ -10,9 +10,14 @@
   "license": "ISC",
   "dependencies": {
     "@heroiclabs/nakama-js": "^0.1.0",
+    "babel-core": "^6.26.0",
+    "babel-loader": "^7.1.2",
+    "babel-preset-env": "^1.6.1",
     "gulp": "^3.9.1",
     "gulp-clean": "^0.4.0",
     "gulp-connect": "^5.2.0",
-    "run-sequence": "^2.2.1"
+    "run-sequence": "^2.2.1",
+    "webpack": "^3.10.0",
+    "webpack-stream": "^4.0.0"
   }
 }

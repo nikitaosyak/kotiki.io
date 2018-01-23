@@ -11,8 +11,29 @@ gulp.task('connect', () => {
 })
 
 gulp.task('clean', () => {
-    const clean = require('gulp-clean')
-    return gulp.src('build/', {read: false}).pipe(clean())
+    return gulp.src('build/', {read: false}).pipe(require('gulp-clean')())
+})
+
+gulp.task('pack', ['clean'], () => {
+    const stream = require('webpack-stream')
+    const webpack2 = require('webpack')
+
+    const config = {
+        module: {
+            loaders: [{
+                test: /'.js$/,
+                exclude: /node_modules/,
+                loader: 'babel-loader',
+                query: { presets: ['env']}
+            }]
+        },
+        output: { filename: 'bundle.js' },
+        devtool: 'source-map'
+    }
+
+    return gulp.src('src/js/**/*.js')
+        .pipe(stream(config, webpack2))
+        .pipe(gulp.dest('build/'))
 })
 
 gulp.task('deploy-static', ['clean'], () => {
@@ -22,7 +43,7 @@ gulp.task('deploy-static', ['clean'], () => {
     return gulp.src(['src/index.html']).pipe(gulp.dest('build/'))
 })
 
-gulp.task('deploy', ['clean', 'deploy-static'], () => {
+gulp.task('deploy', ['clean', 'pack', 'deploy-static'], () => {
     gulp.src(['src/**/*']).pipe(connect.reload())
 })
 
