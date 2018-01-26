@@ -7,6 +7,7 @@ export class Connection {
         this._errorHandler = err => console.error('Connection: ', err)
         this._ready = false
         this._client = new nakamajs.Client()
+        this.matchId = null
         // this._client.verbose = true
 
         this._client.ondisconnect = e => {
@@ -88,16 +89,17 @@ export class Connection {
             }).catch(this._errorHandler)
         }
 
-        const createMatch = (onDone) => {
+        const createMatch = () => {
             let m = new nakamajs.MatchCreateRequest()
-            this._client.send(m).then(result => {
-                console.log('created match: ', result.match.matchId)
+            this._client.send(m).then(createResult => {
+                console.log('created match: ', createResult.match.matchId)
                 m = new nakamajs.RpcRequest()
                 m.id = 'create_match'
-                m.payload = result.match.matchId
-                this._client.send(m).then(result => {
-                    console.log('createMatch results: ', result)
-                    onDone()
+                m.payload = createResult.match.matchId
+                this._client.send(m).then(requestResult => {
+                    console.log('createMatch results: ', requestResult)
+                    this.matchId = createResult.match.matchId
+                    this.emit('joined')
                 }).catch(this._errorHandler)
             }).catch(this._errorHandler)
         }
@@ -108,13 +110,15 @@ export class Connection {
             console.log('trying to join ', list[current].Value.matchId)
             this._client.send(m).then(matches => {
                 console.log('joinRequest results: ', matches)
+                this.matchId = list[current].Value.matchId
+                this.emit('joined')
             }).catch(err => {
                 if (err.code === 14) {
                     if (current < list.length-1) {
                         joinMatch(list, current+1)
                     } else {
                         list.length > 5 && invalidate(list)
-                        createMatch(() => {})
+                        createMatch()
                     }
                 } else {
                     console.error(err)
@@ -127,10 +131,21 @@ export class Connection {
         this._client.send(m).then(result => {
             console.log('getMatch results: ', result)
             if (Object.keys(result.payload).length === 0) {
-                createMatch(() => {})
+                createMatch()
             } else {
                 joinMatch(result.payload, 0)
             }
         }).catch(this._errorHandler)
+    }
+
+    send(data) {
+        const m = new nakamajs.MatchDataSendRequest()
+        m.matchId = this.matchId
+        m.opCode = 1
+        m.data = data
+
+        this._client.send(m).then(() => {
+
+        }).catch(err => console.error(err))
     }
 }
