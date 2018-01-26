@@ -6,3 +6,9 @@ database:
   conn_max_lifetime_ms: 60000
   max_open_conns: 0
   max_idle_conns: 0
+socket:
+  max_message_size_bytes: 10240
+runtime:
+  path: "../server/src"
+log:
+  stdout: true

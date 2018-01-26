@@ -18,7 +18,7 @@ export class Connection {
         }
 
         this._client.onmatchpresence = presenceUpdate => {
-            // console.log('Connection: matchpresence: ', presenceUpdate)
+            console.log('Connection: matchpresence: ', presenceUpdate)
         }
 
         const sessionHandler = session => {
@@ -26,7 +26,7 @@ export class Connection {
             this._client.connect(session).then(session => {
                 // localStorage.nakamaToken = session.token_
                 console.log('    valid until: ', new Date(session.expiresAt))
-
+                console.log(`    userId: ${session.id}`)
                 //
                 // point of readyness
                 this._session = session
@@ -79,21 +79,58 @@ export class Connection {
     get session() { return this._session }
 
     joinMatch() {
-        let ticket = null
-        let m = new nakamajs.MatchmakeAddRequest(20)
-        this._client.send(m).then(ticket => {
-            console.log('added to mm', ticket)
-            ticket = ticket.ticket
-        }).catch(this._errorHandler)
-
-        this._client.onmatchmakematched = matched => {
-            console.log('matchmake matched: ', matched)
-
-            m = new nakamajs.MatchesJoinRequest()
-            m.tokens.push(matched.token)
-            this._client.send(m).then(matches => {
-                console.log('joined a match successfully', matches)
+        const invalidate = matches => {
+            const m = new nakamajs.RpcRequest()
+            m.id = 'invalidate_matches'
+            m.payload = matches
+            this._client.send(m).then(result => {
+                console.log('matches invalidated')
             }).catch(this._errorHandler)
         }
+
+        const createMatch = (onDone) => {
+            let m = new nakamajs.MatchCreateRequest()
+            this._client.send(m).then(result => {
+                console.log('created match: ', result.match.matchId)
+                m = new nakamajs.RpcRequest()
+                m.id = 'create_match'
+                m.payload = result.match.matchId
+                this._client.send(m).then(result => {
+                    console.log('createMatch results: ', result)
+                    onDone()
+                }).catch(this._errorHandler)
+            }).catch(this._errorHandler)
+        }
+
+        const joinMatch = (list, current) => {
+            const m = new nakamajs.MatchesJoinRequest()
+            m.matchIds.push(list[current].Value.matchId)
+            console.log('trying to join ', list[current].Value.matchId)
+            this._client.send(m).then(matches => {
+                console.log('joinRequest results: ', matches)
+            }).catch(err => {
+                if (err.code === 14) {
+                    if (current < list.length-1) {
+                        joinMatch(list, current+1)
+                    } else {
+                        list.length > 5 && invalidate(list)
+                        createMatch(() => {})
+                    }
+                } else {
+                    console.error(err)
+                }
+            })
+        }
+
+        let m = new nakamajs.RpcRequest()
+        m.id = 'get_match'
+        this._client.send(m).then(result => {
+            console.log('getMatch results: ', result)
+            if (Object.keys(result.payload).length === 0) {
+                createMatch(() => {})
+            } else {
+                joinMatch(result.payload, 0)
+            }
+        }).catch(this._errorHandler)
     }
 }
