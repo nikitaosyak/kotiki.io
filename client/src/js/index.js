@@ -19,11 +19,13 @@ window.onload = () => {
             connection.joinMatch()
         })
         connection.on('joined', () => {
+
             console.log('GAME STARTED')
+
 
             const initialPos = {x: getRandomInt(100, 300), y: getRandomInt(100, 300)}
             renderer.addObject(initialPos.x, initialPos.y)
-            connection.send({join: initialPos})
+            connection.send(2, {setPosition: initialPos})
 
             let time = Date.now()
             const gameLoop = () => {
