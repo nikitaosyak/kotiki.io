@@ -61,7 +61,7 @@ window.onload = () => {
                 dataHandlers[Object.keys(data)[0]](userId, data)
             })
 
-            connection.on('join', userId => {
+            connection.on('initialDataRequested', userId => {
                 connection.send(0, {start: {x: localPlayer.visual.x, y: localPlayer.visual.y}}, [userId])
             })
 

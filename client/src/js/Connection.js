@@ -24,28 +24,16 @@ export class Connection {
 
             if ('joins' in presenceUpdate) {
                 presenceUpdate.joins.forEach(join => {
-                    this._presences.push(join)
-
+                    this._updatePresence([join], [])
                     if (join.userId !== this.userId) {
-                        this.emit('join', join.userId)
+                        this.emit('initialDataRequested', join.userId)
                     }
                 })
             }
 
             if ('leaves' in presenceUpdate) {
-                this._presences = this._presences.filter(current => {
-                    let stillOnline = true
-                    presenceUpdate.leaves.forEach(leave => {
-                        if (current.userId === leave.userId) {
-                            stillOnline = false
-                            this.emit('data', leave.userId, {leaves: true})
-                        }
-                    })
-
-                    return stillOnline
-                })
+                this._updatePresence([], presenceUpdate.leaves)
             }
-            console.log('presence list: ', this._presences)
         }
 
         const sessionHandler = session => {
@@ -106,6 +94,29 @@ export class Connection {
     get session() { return this._session }
     get userId() { return this._session.id }
 
+    _updatePresence(joins, leaves) {
+        joins.forEach(join => {
+            if (this._presences.filter(current => current.userId === join.userId).length === 0) {
+                this._presences.push(join)
+            }
+        })
+
+        if (leaves && leaves.length > 0) {
+            this._presences = this._presences.filter(current => {
+                let stillOnline = true
+                leaves.forEach(leave => {
+                    if (current.userId === leave.userId) {
+                        stillOnline = false
+                        this.emit('data', leave.userId, {leaves: true})
+                    }
+                })
+
+                return stillOnline
+            })
+        }
+        console.log('presence list: ', this._presences)
+    }
+
     joinMatch() {
         const invalidate = matches => {
             const m = new nakamajs.RpcRequest()
@@ -135,8 +146,10 @@ export class Connection {
             const m = new nakamajs.MatchesJoinRequest()
             m.matchIds.push(list[current].Value.matchId)
             // console.log('trying to join ', list[current].Value.matchId)
-            this._client.send(m).then(matches => {
-                console.log('joinRequest results: ', matches)
+            this._client.send(m).then(response => {
+                console.log('joinRequest results: ', response)
+                this._updatePresence(response.matches[0].presences, [])
+
                 this._matchId = list[current].Value.matchId
                 this.emit('joined')
             }).catch(err => {
