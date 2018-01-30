@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="nakamaclient" type="javaScript">
+    <properties>
+      <sourceFilesUrls>
+        <item url="file://$PROJECT_DIR$/nakamaclient/dist/nakama-js.umd.js" />
+      </sourceFilesUrls>
+    </properties>
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/nakamaclient/dist/nakama-js.umd.js" />
+    </CLASSES>
+    <SOURCES />
+  </library>
+</component>

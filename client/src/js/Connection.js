@@ -1,7 +1,5 @@
-import * as nakamajs from "@heroiclabs/nakama-js/dist/nakama-js.cjs";
 import {emitterBehaviour} from "./util/EmitterBehaviour";
 import * as util from "./util/util"
-import base64 from "@heroiclabs/nakama-js/dist/nakama-js.cjs"
 
 export class Connection {
     constructor() {
@@ -140,17 +138,11 @@ export class Connection {
     }
 
     send(code, data) {
-        const m = new nakamajs.MatchDataSendRequest({presences: [{
-                userId: 'someid',
-                sessionId: this.matchId,
-                handle: 'shit'
-            }], opCode: code})
+        const m = new nakamajs.MatchDataSendRequest()
+        m.presences = []
+        m.opCode = code
         m.matchId = this.matchId
         m.data = data
-
-        // const encoded = window.base64.encode(JSON.stringify(data))
-        // console.log(encoded)
-        // console.log(window.base64.decode(encoded))
 
         this._client.send(m).then(() => {
 
