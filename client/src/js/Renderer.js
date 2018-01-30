@@ -7,7 +7,6 @@ export class Renderer {
         this._stage = new PIXI.Container()
         this._graphics = new PIXI.Graphics()
         this._stage.addChild(this._graphics)
-        this._graphicsList = []
 
         this._renderer = PIXI.autoDetectRenderer({
             roundPixels: false,
@@ -38,26 +37,12 @@ export class Renderer {
         this._renderer.render(this._stage)
     }
 
-    _redrawGraphics() {
-        this._graphics.clear()
-
-        this._graphicsList.forEach(item => {
-            this._graphics.beginFill(0xCC0000)
-            this._graphics.drawCircle(item.x, item.y, 50)
-            this._graphics.endFill()
-        })
+    addObject(value) {
+        this._stage.addChild(value.visual)
     }
 
-    addObject(x, y) {
-        this._graphicsList.push({x: x, y: y})
-        this._redrawGraphics()
-
-        return this._graphicsList.length-1
+    removeObject(value) {
+        this._stage.removeChild(value.visual)
     }
 
-    moveObject(idx, x, y) {
-        this._graphicsList[idx].x += x
-        this._graphicsList[idx].y += y
-        this._redrawGraphics()
-    }
 }

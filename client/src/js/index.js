@@ -3,6 +3,7 @@ import {DOMUtils} from "./util/DOMUtils";
 import {Renderer} from "./Renderer";
 import {Input} from "./Input";
 import {getRandomInt} from "./util/util";
+import {Player} from "./go/Player";
 
 window.onload = () => {
 
@@ -13,6 +14,8 @@ window.onload = () => {
     const startGame = () => {
         const input = new Input()
         const renderer = new Renderer(canvas)
+        const players = {}
+        let localPlayer = null
 
         const connection = new Connection()
         connection.on('connected', () => {
@@ -22,10 +25,46 @@ window.onload = () => {
 
             console.log('GAME STARTED')
 
+            const addPlayer = (userId, x, y, local) => {
+                const player = Player(userId, x, y, local)
+                players[userId] = player
+                renderer.addObject(player)
 
-            const initialPos = {x: getRandomInt(100, 300), y: getRandomInt(100, 300)}
-            renderer.addObject(initialPos.x, initialPos.y)
-            connection.send(2, {setPosition: initialPos})
+                if (local) {
+                    localPlayer = player
+                    connection.send(0, {start: {x: player.visual.x, y: player.visual.y}})
+                }
+            }
+
+            const removePlayer = (userId) => {
+                const player = players[userId]
+                renderer.removeObject(player)
+                delete players[userId]
+            }
+
+            addPlayer(connection.userId, getRandomInt(30, 300), getRandomInt(30, 300), true)
+
+            const dataHandlers = {
+                start: (userId, data) => {
+                    addPlayer(userId, data.start.x, data.start.y, false)
+                },
+                leaves: (userId) => {
+                    removePlayer(userId)
+                },
+                pos: (userId, data) => {
+                    players[userId].visual.x = data.pos.x
+                    players[userId].visual.y = data.pos.y
+                }
+            }
+
+            connection.on('data', (userId, data) => {
+                dataHandlers[Object.keys(data)[0]](userId, data)
+            })
+
+            connection.on('join', userId => {
+                connection.send(0, {start: {x: localPlayer.visual.x, y: localPlayer.visual.y}}, [userId])
+            })
+
 
             let time = Date.now()
             const gameLoop = () => {
@@ -39,7 +78,10 @@ window.onload = () => {
         })
 
         input.on('velocity', v => {
-            renderer.moveObject(0, v.x, v.y)
+            localPlayer.visual.x += v.x * 5
+            localPlayer.visual.y += v.y * 5
+
+            connection.send(1, {pos: {x: localPlayer.visual.x, y: localPlayer.visual.y}})
         })
     }
 

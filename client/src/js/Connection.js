@@ -6,19 +6,46 @@ export class Connection {
         this._errorHandler = err => console.error('Connection: ', err)
         this._ready = false
         this._client = new nakamajs.Client()
-        this.matchId = null
+        this._matchId = null
         // this._client.verbose = true
+        this._presences = []
 
         this._client.ondisconnect = e => {
             console.warn('client disconnected: ', e)
         }
 
-        this._client.onmatchdata = data => {
-            console.log('Connection: matchdata: ', data)
+        this._client.onmatchdata = matchData => {
+            console.log('Connection: matchdata: ', matchData)
+            this.emit('data', matchData.presence.userId, matchData.data)
         }
 
         this._client.onmatchpresence = presenceUpdate => {
             console.log('Connection: matchpresence: ', presenceUpdate)
+
+            if ('joins' in presenceUpdate) {
+                presenceUpdate.joins.forEach(join => {
+                    this._presences.push(join)
+
+                    if (join.userId !== this.userId) {
+                        this.emit('join', join.userId)
+                    }
+                })
+            }
+
+            if ('leaves' in presenceUpdate) {
+                this._presences = this._presences.filter(current => {
+                    let stillOnline = true
+                    presenceUpdate.leaves.forEach(leave => {
+                        if (current.userId === leave.userId) {
+                            stillOnline = false
+                            this.emit('data', leave.userId, {leaves: true})
+                        }
+                    })
+
+                    return stillOnline
+                })
+            }
+            console.log('presence list: ', this._presences)
         }
 
         const sessionHandler = session => {
@@ -26,7 +53,7 @@ export class Connection {
             this._client.connect(session).then(session => {
                 // localStorage.nakamaToken = session.token_
                 console.log('    valid until: ', new Date(session.expiresAt))
-                console.log(`    userId: ${session.id}`)
+                console.log(`    sessionId: ${session.id}`)
                 //
                 // point of readyness
                 this._session = session
@@ -77,6 +104,7 @@ export class Connection {
 
     get ready() { return this._ready }
     get session() { return this._session }
+    get userId() { return this._session.id }
 
     joinMatch() {
         const invalidate = matches => {
@@ -97,7 +125,7 @@ export class Connection {
                 m.payload = createResult.match.matchId
                 this._client.send(m).then(requestResult => {
                     console.log('createMatch results: ', requestResult)
-                    this.matchId = createResult.match.matchId
+                    this._matchId = createResult.match.matchId
                     this.emit('joined')
                 }).catch(this._errorHandler)
             }).catch(this._errorHandler)
@@ -109,7 +137,7 @@ export class Connection {
             // console.log('trying to join ', list[current].Value.matchId)
             this._client.send(m).then(matches => {
                 console.log('joinRequest results: ', matches)
-                this.matchId = list[current].Value.matchId
+                this._matchId = list[current].Value.matchId
                 this.emit('joined')
             }).catch(err => {
                 if (err.code === 14) {
@@ -137,11 +165,11 @@ export class Connection {
         }).catch(this._errorHandler)
     }
 
-    send(code, data) {
+    send(code, data, to = []) {
         const m = new nakamajs.MatchDataSendRequest()
-        m.presences = []
+        m.presences = to.map(el => this._presences.reduce((_, p) => p.userId === el ? p : _), null)
         m.opCode = code
-        m.matchId = this.matchId
+        m.matchId = this._matchId
         m.data = data
 
         this._client.send(m).then(() => {
