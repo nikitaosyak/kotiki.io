@@ -9,7 +9,7 @@ export class Connection {
         this._ready = false
         this._client = new nakamajs.Client()
         this.matchId = null
-        this._client.verbose = true
+        // this._client.verbose = true
 
         this._client.ondisconnect = e => {
             console.warn('client disconnected: ', e)
@@ -108,7 +108,7 @@ export class Connection {
         const joinMatch = (list, current) => {
             const m = new nakamajs.MatchesJoinRequest()
             m.matchIds.push(list[current].Value.matchId)
-            console.log('trying to join ', list[current].Value.matchId)
+            // console.log('trying to join ', list[current].Value.matchId)
             this._client.send(m).then(matches => {
                 console.log('joinRequest results: ', matches)
                 this.matchId = list[current].Value.matchId

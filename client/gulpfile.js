@@ -37,7 +37,7 @@ gulp.task('pack', ['clean'], () => {
 })
 
 gulp.task('deploy-static', ['clean'], () => {
-    gulp.src(['node_modules/@heroiclabs/nakama-js/dist/nakama-js.umd.js'])
+    gulp.src(['../nakamaclient/dist/nakama-js.umd.js'])
         .pipe(gulp.dest('build/'))
 
     gulp.src(['src/lib/**/*.js']).pipe(gulp.dest('build/lib'))

@@ -1,0 +1,4 @@
+[submodule "nakamaclient"]
+	path = nakamaclient
+	url = https://github.com/heroiclabs/nakama-js.git
+	branch = master
