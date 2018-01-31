@@ -13,9 +13,10 @@ export class Connection {
         }
 
         this._client.onmatchdata = matchData => {
-            console.log('Connection: matchdata: ', matchData)
+            console.log('matchdata from ', matchData.presence.userId)
             this.emit('data', matchData.presence.userId, matchData.data)
         }
+
 
         Object.assign(this, emitterBehaviour({}))
 

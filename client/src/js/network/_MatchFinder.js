@@ -10,18 +10,24 @@ export const MatchFinder = (owner) => {
     return {
         get matchId() { return matchId },
         find: () => {
+            const saveMatchOnBackend = (matchId, onDone) => {
+                owner._client.send(new nakamajs.RpcRequest({
+                    id: 'create_match',
+                    payload: matchId
+                }))
+                    .then(result => {
+                        console.log('MatchSave: ', result.payload)
+                    })
+                    .catch(e => console.error(e))
+            }
+
             const createMatch = () => {
                 let m = new nakamajs.MatchCreateRequest()
-                this._client.send(m).then(createResult => {
+                owner._client.send(m).then(createResult => {
                     console.log('created match: ', createResult.match.matchId)
-                    m = new nakamajs.RpcRequest()
-                    m.id = 'create_match'
-                    m.payload = createResult.match.matchId
-                    this._client.send(m).then(requestResult => {
-                        console.log('createMatch results: ', requestResult)
-                        this._matchId = createResult.match.matchId
-                        this.emit('joinedMatch')
-                    }).catch(e => console.error(e))
+                    matchId = createResult.match.matchId
+                    saveMatchOnBackend(matchId)
+                    owner.emit('joinedMatch')
                 }).catch(e => console.error(e))
             }
 
@@ -31,22 +37,30 @@ export const MatchFinder = (owner) => {
                 owner._presences.update(response.matches[0].presences, [])
 
                 if (saveMatch) {
-                    owner._client.send(new nakamajs.RpcRequest({
-                        id: 'create_match',
-                        payload: matchId})
-                    )
-                        .then(result => console.log('MatchSave: ', result.payload))
-                        .catch(e => console.error(e))
+                    saveMatchOnBackend(matchId, () => owner.emit('joinedMatch'))
                 }
-
                 owner.emit('joinedMatch')
+
             }
 
             const findMatch = () => {
-                owner._client.send(new nakamajs.MatchmakeAddRequest(2))
-                    .then(ticket => {
-                        console.log('matchMakeRequest added: ', ticket)
+                owner._client.send(new nakamajs.MatchmakeAddRequest(3))
+                    .then(mmResult => {
+                        console.log('matchMakeRequest added: ', mmResult.ticket)
+
+                        const timeout = setTimeout(() => {
+                            console.log('    match timed out. will try to re-search')
+                            owner._client.onmatchmakematched = null
+                            owner._client.send(
+
+                                new nakamajs.MatchmakeRemoveRequest(mmResult.ticket)
+                            ).then(() => {
+                                tryJoinExistingMatches(createMatch)
+                            }).catch(e => console.error(e))
+                        }, 200)
+
                         owner._client.onmatchmakematched = matchedResult => {
+                            clearTimeout(timeout)
                             console.log('    found match, ', matchedResult.ticket)
                             owner._client.onmatchmakematched = null
                             owner._client.send(new nakamajs.MatchesJoinRequest({tokens: [matchedResult.token]}))
@@ -56,7 +70,7 @@ export const MatchFinder = (owner) => {
                     .catch(e => console.error(e))
             }
 
-            const joinMatch = (list, current) => {
+            const joinMatch = (list, current, onFail) => {
                 const m = new nakamajs.MatchesJoinRequest()
                 m.matchIds.push(list[current].Value.matchId)
                 console.log('trying to join ', list[current].Value.matchId)
@@ -74,8 +88,8 @@ export const MatchFinder = (owner) => {
                                 ).then(_ => {
                                     console.log(`    ${list.length} matches invalidated`)
                                 }).catch(e => console.error(e))
-                                console.log('    matches not found, enqueueing')
-                                findMatch()
+                                console.log('    FAIL.. matches not found')
+                                onFail()
                             }
                         } else {
                             console.error(err)
@@ -83,16 +97,20 @@ export const MatchFinder = (owner) => {
                     })
             }
 
-            owner._client.send(new nakamajs.RpcRequest({id: 'get_match'}))
-                .then(result => {
-                    console.log('getMatch results: ', result)
-                    if (Object.keys(result.payload).length === 0) {
-                        console.log('    matches not found, enqueueing')
-                        findMatch()
-                    } else {
-                        joinMatch(result.payload, 0)
-                    }
-                }).catch(e => console.error(e))
+            const tryJoinExistingMatches = (onFail) => {
+                owner._client.send(new nakamajs.RpcRequest({id: 'get_match'}))
+                    .then(result => {
+                        console.log('getMatch results: ', result)
+                        if (Object.keys(result.payload).length === 0) {
+                            console.log('    FAIL.. matches not found')
+                            onFail()
+                        } else {
+                            joinMatch(result.payload, 0, onFail)
+                        }
+                    }).catch(e => console.error(e))
+            }
+
+            tryJoinExistingMatches(findMatch)
         }
     }
 }
