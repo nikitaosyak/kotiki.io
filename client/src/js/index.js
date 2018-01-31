@@ -1,4 +1,4 @@
-import {Connection} from './Connection'
+import {Connection} from './network/Connection'
 import {DOMUtils} from "./util/DOMUtils";
 import {Renderer} from "./Renderer";
 import {Input} from "./Input";

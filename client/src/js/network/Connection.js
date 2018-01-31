@@ -1,13 +1,11 @@
-import {emitterBehaviour} from "./util/EmitterBehaviour";
-import * as util from "./util/util"
+import {emitterBehaviour} from "../util/EmitterBehaviour";
+import {Auth} from "./_Auth";
 
 export class Connection {
     constructor() {
-        this._errorHandler = err => console.error('Connection: ', err)
-        this._ready = false
         this._client = new nakamajs.Client()
-        this._matchId = null
         // this._client.verbose = true
+        this._matchId = null
         this._presences = []
 
         this._client.ondisconnect = e => {
@@ -36,63 +34,14 @@ export class Connection {
             }
         }
 
-        const sessionHandler = session => {
-            console.log('sessionHandler:')
-            this._client.connect(session).then(session => {
-                // localStorage.nakamaToken = session.token_
-                console.log('    valid until: ', new Date(session.expiresAt))
-                console.log(`    sessionId: ${session.id}`)
-                //
-                // point of readyness
-                this._session = session
-                this._ready = true
-                this.emit('connected')
-            }).catch(this._errorHandler)
-        }
-
-        const needLoginOrRegister = () => {
-            console.log('restoreSession:')
-            let sessionString = ''//localStorage.nakamaToken
-            if (sessionString === 'undefined' || sessionString === '') {
-                console.log('restoreSession: no saved session key in local storage')
-                return true
-            }
-
-            const session = nakamajs.Session.restore(sessionString)
-            if (session.isexpired(Date.now())) {
-                console.log('    session expired')
-                return true
-            }
-
-            console.log('    success')
-            sessionHandler(session)
-            return false
-        }
-
-        const loginOrRegister = () => {
-            console.log('loginOrRegister:')
-            const msg = nakamajs.AuthenticateRequest.email(`${util.makeid()}@test.com`, '12345678')
-            this._client.login(msg).then(sessionHandler).catch(err => {
-                if (err.code === 5) {
-                    console.log(`    registering user`)
-                    this._client.register(msg).then(sessionHandler).catch(this._errorHandler)
-                } else {
-                    console.log(`    session error: ${err.code}`)
-                    this._errorHandler(err)
-                }
-            })
-        }
-
-        if (needLoginOrRegister()) {
-            loginOrRegister()
-        }
-
         Object.assign(this, emitterBehaviour({}))
+
+        this._auth = Auth(this)
     }
 
-    get ready() { return this._ready }
-    get session() { return this._session }
-    get userId() { return this._session.id }
+    get ready() { return this._auth.ready }
+    get session() { return this._auth.session }
+    get userId() { return this._auth.session.id }
 
     _updatePresence(joins, leaves) {
         joins.forEach(join => {
@@ -124,7 +73,7 @@ export class Connection {
             m.payload = matches
             this._client.send(m).then(result => {
                 console.log('matches invalidated')
-            }).catch(this._errorHandler)
+            }).catch(e => console.error(e))
         }
 
         const createMatch = () => {
@@ -138,8 +87,8 @@ export class Connection {
                     console.log('createMatch results: ', requestResult)
                     this._matchId = createResult.match.matchId
                     this.emit('joined')
-                }).catch(this._errorHandler)
-            }).catch(this._errorHandler)
+                }).catch(e => console.error(e))
+            }).catch(e => console.error(e))
         }
 
         const joinMatch = (list, current) => {
@@ -175,7 +124,7 @@ export class Connection {
             } else {
                 joinMatch(result.payload, 0)
             }
-        }).catch(this._errorHandler)
+        }).catch(e => console.error(e))
     }
 
     send(code, data, to = []) {
