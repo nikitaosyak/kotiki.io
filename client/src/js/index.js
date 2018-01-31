@@ -21,8 +21,7 @@ window.onload = () => {
         connection.on('connected', () => {
             connection.joinMatch()
         })
-        connection.on('joined', () => {
-
+        connection.on('joinedMatch', () => {
             console.log('GAME STARTED')
 
             const addPlayer = (userId, x, y, local) => {
@@ -48,9 +47,6 @@ window.onload = () => {
                 start: (userId, data) => {
                     addPlayer(userId, data.start.x, data.start.y, false)
                 },
-                leaves: (userId) => {
-                    removePlayer(userId)
-                },
                 pos: (userId, data) => {
                     players[userId].visual.x = data.pos.x
                     players[userId].visual.y = data.pos.y
@@ -62,8 +58,11 @@ window.onload = () => {
             })
 
             connection.on('initialDataRequested', userId => {
+                console.log('sending start to ', userId)
                 connection.send(0, {start: {x: localPlayer.visual.x, y: localPlayer.visual.y}}, [userId])
             })
+
+            connection.on('userLeaves', removePlayer)
 
 
             let time = Date.now()
