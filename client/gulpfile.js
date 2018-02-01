@@ -4,6 +4,7 @@ const sequence = require('run-sequence').use(gulp)
 
 gulp.task('connect', () => {
     connect.server({
+        host: '192.168.20.161',
         root: 'build/',
         port: '8000',
         livereload: true

@@ -5,7 +5,7 @@ import {PresenceHandler} from "./_PresenceUpdater";
 
 export class Connection {
     constructor() {
-        this._client = new nakamajs.Client()
+        this._client = new nakamajs.Client('defaultkey', '192.168.20.161')
         // this._client.verbose = true
 
         this._client.ondisconnect = e => {

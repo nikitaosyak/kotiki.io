@@ -2,31 +2,26 @@ import {emitterBehaviour} from "./util/EmitterBehaviour";
 
 export class Input {
     constructor() {
-
-        const keyReactions = {
-            97: () => {this.emit('velocity', {x: -1, y: 0})},
-            100: () => {this.emit('velocity', {x: 1, y: 0})},
-            119: () => {this.emit('velocity', {x: 0, y: -1})},
-            115: () => {this.emit('velocity', {x: 0, y: 1})},
-        }
-
-        window.onkeypress = (e) => {
-            e.preventDefault()
-            keyReactions[e.keyCode]()
-        }
-
         let normalDirection = {x: 0, y: 0}
 
-        window.onmousemove = (e) => {
+        const getX = (e) => {
+            if ('touches' in e) return e.touches.item(0).clientX
+            return e.clientX
+        }
+        const getY = (e) => {
+            if ('touches' in e) return e.touches.item(0).clientY
+            return e.clientY
+        }
+
+        const updateNormal = e => {
             const centerX = document.documentElement.clientWidth / 2
             const centerY = document.documentElement.clientHeight / 2
 
-            const vx = e.clientX - centerX
-            const vy = e.clientY - centerY
+            const vx = getX(e) - centerX; const vy = getY(e) - centerY
 
             const magnitude = Math.sqrt(vx*vx + vy*vy)
 
-            if (magnitude > 100) {
+            if (magnitude > 0) {
                 normalDirection.x = vx / magnitude
                 normalDirection.y = vy / magnitude
             } else {
@@ -34,9 +29,25 @@ export class Input {
             }
         }
 
-        window.onmouseout = (e) => {
+        const disableNormal = () => {
             normalDirection.x = normalDirection.y = 0
         }
+
+        window.ontouchstart = e => {
+            e.preventDefault()
+            updateNormal(e)
+        }
+        window.ontouchmove = e => {
+            e.preventDefault()
+            updateNormal(e)
+        }
+        window.ontouchend = e => {
+            e.preventDefault()
+            disableNormal()
+        }
+
+        window.onmousemove = updateNormal
+        window.onmouseout = disableNormal
 
         Object.assign(this, emitterBehaviour({}))
 

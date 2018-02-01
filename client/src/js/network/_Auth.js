@@ -46,7 +46,7 @@ export const Auth = (owner) => {
         console.log('loginOrRegister:')
         const msg = nakamajs.AuthenticateRequest.email(`${util.makeid()}@test.com`, '12345678')
         owner._client.login(msg).then(sessionHandler).catch(e => {
-            if (e.code === 5) {
+            if (e.code === 5 || e.code === 4) {
                 console.log(`    registering user`)
                 owner._client.register(msg)
                     .then(sessionHandler)
