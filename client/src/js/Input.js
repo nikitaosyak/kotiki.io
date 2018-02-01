@@ -29,6 +29,23 @@ export class Input {
             }
         }
 
+        let fs = false
+        let fsDoubleClick = 0
+        const onTouchEnd = e => {
+            if (Date.now() - fsDoubleClick < 200) {
+                if (fs) {
+                    document.exitFullscreen()
+                    fs = false
+                } else {
+                    window.document.documentElement.requestFullscreen()
+                    fs = true
+                }
+            }
+            fsDoubleClick = Date.now()
+            e.preventDefault()
+            disableNormal()
+        }
+
         const disableNormal = () => {
             normalDirection.x = normalDirection.y = 0
         }
@@ -41,12 +58,10 @@ export class Input {
             e.preventDefault()
             updateNormal(e)
         }
-        window.ontouchend = e => {
-            e.preventDefault()
-            disableNormal()
-        }
+        window.ontouchend = onTouchEnd
 
         window.onmousemove = updateNormal
+        window.onmouseup = onTouchEnd
         window.onmouseout = disableNormal
 
         Object.assign(this, emitterBehaviour({}))
