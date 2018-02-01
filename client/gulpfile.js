@@ -42,7 +42,9 @@ gulp.task('deploy-static', ['clean'], () => {
 
     gulp.src(['src/lib/**/*.js']).pipe(gulp.dest('build/lib'))
 
-    return gulp.src(['src/index.html']).pipe(gulp.dest('build/'))
+    gulp.src(['src/index.html']).pipe(gulp.dest('build/'))
+
+    return gulp.src(['assets/**/*.*']).pipe(gulp.dest('build/assets'))
 })
 
 gulp.task('deploy', ['clean', 'pack', 'deploy-static'], () => {

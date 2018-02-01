@@ -4,8 +4,11 @@ import {Renderer} from "./Renderer";
 import {Input} from "./Input";
 import {getRandomInt} from "./util/util";
 import {Player} from "./go/Player";
+import {Resources} from "./util/Resources";
 
 window.onload = () => {
+
+    const resources = window.resources = Resources()
 
     const canvas = DOMUtils.createElement('canvas', 'gameCanvas')
     document.body.appendChild(canvas)
@@ -30,6 +33,7 @@ window.onload = () => {
                 renderer.addObject(player)
 
                 if (local) {
+                    renderer.pivotOn(player)
                     localPlayer = player
                     connection.send(0, {start: {x: player.visual.x, y: player.visual.y}})
                 }
@@ -64,25 +68,28 @@ window.onload = () => {
 
             connection.on('userLeaves', removePlayer)
 
-
             let time = Date.now()
             const gameLoop = () => {
-                let dt = Date.now() - time
+                let dt = (Date.now() - time) / 1000
                 time = Date.now()
+
+                const speed = 100
+                localPlayer.visual.x += input.normal.x * speed * dt
+                localPlayer.visual.y += input.normal.y * speed * dt
+                connection.send(1, {pos: {x: localPlayer.visual.x, y: localPlayer.visual.y}})
 
                 requestAnimationFrame(gameLoop)
                 renderer.update()
             }
             gameLoop()
         })
-
-        input.on('velocity', v => {
-            localPlayer.visual.x += v.x * 5
-            localPlayer.visual.y += v.y * 5
-
-            connection.send(1, {pos: {x: localPlayer.visual.x, y: localPlayer.visual.y}})
-        })
     }
 
-    startGame()
+    // startGame()
+
+    resources
+        .add('bgtile', 'assets/bgtile.png')
+        .load(() => {
+            startGame()
+        })
 }

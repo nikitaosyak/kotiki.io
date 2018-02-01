@@ -15,6 +15,33 @@ export class Input {
             keyReactions[e.keyCode]()
         }
 
+        let normalDirection = {x: 0, y: 0}
+
+        window.onmousemove = (e) => {
+            const centerX = document.documentElement.clientWidth / 2
+            const centerY = document.documentElement.clientHeight / 2
+
+            const vx = e.clientX - centerX
+            const vy = e.clientY - centerY
+
+            const magnitude = Math.sqrt(vx*vx + vy*vy)
+
+            if (magnitude > 100) {
+                normalDirection.x = vx / magnitude
+                normalDirection.y = vy / magnitude
+            } else {
+                normalDirection.x = normalDirection.y = 0
+            }
+        }
+
+        window.onmouseout = (e) => {
+            normalDirection.x = normalDirection.y = 0
+        }
+
         Object.assign(this, emitterBehaviour({}))
+
+        return {
+            get normal() { return normalDirection }
+        }
     }
 }
